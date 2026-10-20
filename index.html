@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ENT312Reg | Online Student Registration</title>
+<style>
+:root{--p:#174ea6;--bg:#f4f7fb;--t:#1f2937;--m:#64748b;--b:#dbe3ef;--ok:#15803d;--bad:#b91c1c}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--t)}
+header{background:var(--p);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px}header small{display:block;opacity:.85}
+.wrap{max-width:1150px;margin:18px auto;padding:0 12px}.card{background:#fff;border:1px solid var(--b);border-radius:10px;padding:18px;margin-bottom:16px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}nav button{border:1px solid var(--b);background:#fff;padding:9px 13px;border-radius:7px;cursor:pointer;font-weight:bold}nav button.on{background:var(--p);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}
+label{font-size:13px;font-weight:bold;display:block;margin-bottom:4px}input,select,textarea{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;font:inherit}
+.btn{border:0;border-radius:6px;padding:9px 13px;cursor:pointer;font-weight:bold;background:var(--p);color:#fff;font-size:13px}.btn.s{background:#e2e8f0;color:#1e293b}.btn.d{background:var(--bad)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.bar input{flex:1;min-width:200px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:640px}th,td{padding:9px;border-bottom:1px solid var(--b);text-align:left;font-size:13px}th{background:#f1f5f9}
+.msg{padding:10px;border-radius:6px;margin:10px 0;font-size:13px;display:none}.msg.ok{display:block;background:#dcfce7;color:#166534}.msg.er{display:block;background:#fee2e2;color:#991b1b}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}.stat{flex:1;min-width:140px;background:#fff;border:1px solid var(--b);border-radius:10px;padding:14px}.stat b{display:block;font-size:26px;color:var(--p)}
+#login{max-width:400px;margin:8vh auto}.hide{display:none!important}.pill{background:#dbeafe;border-radius:20px;padding:3px 9px;font-size:11px;font-weight:bold}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<div id="login" class="card"><h2 style="text-align:center;color:var(--p)">ENT312Reg</h2>
+<p style="text-align:center;color:var(--m)">Sign in with the account created for you by the administrator.</p>
+<form id="lf"><label>Email</label><input id="em" type="email" required><br><br><label>Password</label><input id="pw" type="password" required><br><br>
+<button class="btn" style="width:100%">Sign In</button><div id="lm" class="msg"></div></form></div>
+
+<div id="app" class="hide">
+<header><div><h1>ENT312Reg</h1><small>Student Registration · Shared Online Database</small></div>
+<div><span id="who"></span> <span id="role" class="pill"></span> <button class="btn s" id="out">Logout</button></div></header>
+<div class="wrap">
+<div id="conn" class="msg"></div>
+<nav><button data-v="rec" class="on">Student Records</button><button data-v="reg">Register Student</button><button data-v="tools">Import / Export</button><button data-v="pend" id="pnav">Pending (<span id="pn">0</span>)</button><button data-v="users" id="unav" class="hide">Users</button><button data-v="scores" id="snav" class="hide">Scores</button></nav>
+
+<section id="rec"><div class="stats"><div class="stat">Total students<b id="n1">0</b></div><div class="stat">Male<b id="n2">0</b></div><div class="stat">Female<b id="n3">0</b></div></div>
+<div class="card"><h3 style="margin-top:0">Students per Skill Unit</h3><div class="tw"><table style="min-width:0"><tbody id="uc"></tbody></table></div></div>
+<div class="card"><div class="bar"><input id="q" placeholder="Search by name, admission number, phone, level or session"><select id="uf" style="max-width:300px"></select></div>
+<div class="tw"><table><thead><tr><th>Admission No.</th><th>Name</th><th>Gender</th><th>Skill Unit</th><th>Level</th><th>Session</th><th>Actions</th></tr></thead><tbody id="tb"></tbody></table></div></div></section>
+
+<section id="reg" class="hide"><div class="card"><h2 id="ft">Register New Student</h2><div id="fm" class="msg"></div>
+<form id="sf"><div class="grid" id="fields"></div>
+<div class="bar"><button class="btn" id="sv">Save Student</button><button type="button" class="btn s" id="clr">Clear</button></div></form></div></section>
+
+<section id="tools" class="hide"><div class="card"><h2>Export</h2><div class="bar"><button class="btn" id="ecsv">Download CSV</button><button class="btn s" id="ejson">Download Backup (JSON)</button></div></div>
+<div class="card" id="impcard"><h2>Import Existing Records</h2>
+<p>Choose one or more JSON backup files made by the old offline version. Students whose admission number already exists are skipped, and possible duplicates (same name and date of birth) are listed for you to review. Admin only.</p>
+<input type="file" id="imp" accept=".json" multiple><div id="im" class="msg"></div><pre id="ir" style="white-space:pre-wrap;font-size:12px"></pre></div></section>
+<section id="pend" class="hide"><div class="card"><h2>Student Self-Registration Link</h2><p>Send this link to students. They enter their ID number (00/00/00/0000 or KIU/00/00/00/0000) and fill the form. Submissions appear below for approval.</p><div class="bar"><input id="plink" readonly><button class="btn" id="pcopy">Copy Link</button></div></div>
+<div class="card"><h2>Pending Submissions</h2><div id="pm" class="msg"></div><div class="tw"><table><thead><tr><th>Admission No.</th><th>Name</th><th>Skill Unit</th><th>Phone</th><th>Actions</th></tr></thead><tbody id="ptb"></tbody></table></div></div></section>
+<section id="users" class="hide"><div class="card"><h2 id="ut">Add User</h2><div id="um" class="msg"></div>
+<form id="usf"><div class="grid"><div><label>Full Name *</label><input id="u_name"></div><div><label>Email *</label><input id="u_email" type="email"></div>
+<div><label>Role *</label><select id="u_role"></select></div><div id="u_unit_w"><label>Skill Unit (unit heads) *</label><select id="u_unit"></select></div>
+<div><label>Temporary Password * (at least 8 characters)</label><input id="u_pw"></div></div>
+<div class="bar"><button class="btn" id="usv">Add User</button><button type="button" class="btn s" id="uclr">Clear</button></div></form></div>
+<div class="card"><h2>Accounts</h2><div class="tw"><table><thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="utb"></tbody></table></div></div></section>
+<section id="scores" class="hide"><div class="card"><h2>Student Scores</h2><p style="color:#64748b;font-size:13px">Only unit heads (for their own unit) and administrators can enter scores. Students see them in their portal. Assignment and CA are out of 100.</p><div id="sm" class="msg"></div><div class="bar"><input id="sq" placeholder="Search student"></div>
+<div class="tw"><table><thead><tr><th>Admission No.</th><th>Name</th><th>Skill Unit</th><th>Attendance (days)</th><th>Assignment</th><th>CA</th><th></th></tr></thead><tbody id="sctb"></tbody></table></div></div></section>
+</div></div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import{getFirestore,updateDoc,query,where,collection,doc,getDoc,setDoc,onSnapshot,runTransaction,deleteDoc,writeBatch,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyDnoGs4QS580kWJob9KTF0mOZFJFza3ofg",authDomain:"ent312-db722.firebaseapp.com",projectId:"ent312-db722",storageBucket:"ent312-db722.firebasestorage.app",messagingSenderId:"64579185987",appId:"1:64579185987:web:66a81872ee08e8e92ad3f6"};
+const fb=initializeApp(cfg),auth=getAuth(fb),db=getFirestore(fb),auth2=getAuth(initializeApp(cfg,"second"));
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const U=["Tailoring and Fashion Design","Soap and Detergent Production","Leatherwork","Woodwork and Carpentry","Tie-Dye and Textile Design","Welding and Fabrication","Solar and Electrical Installation","Computer Networking and Maintenance","Computer Applications and Artificial Intelligence (AI)","Web Design","Building and Construction"];
+const F=[["admissionNo","Admission Number *","text",1],["registrationDate","Registration Date *","date",1],["firstName","First Name *","text",1],["middleName","Middle Name","text"],["lastName","Last Name *","text",1],["gender","Gender *","select",1],["dob","Date of Birth","date"],["phone","Phone Number","text"],["email","Email Address","email"],["session","Academic Session * (e.g. 2025/2026)","text",1],["level","Academic Level *","select",1],["skillUnit","Skill Unit *","select",1],["programme","Programme / Course","text"],["department","Department (optional)","text"],["guardian","Parent / Guardian Name","text"],["guardianPhone","Guardian Phone","text"],["address","Residential Address","textarea"],["notes","Additional Notes","textarea"]];
+const OPT={skillUnit:U,gender:["Male","Female","Other"],level:["100 Level","200 Level","300 Level","400 Level","500 Level","600 Level","ND I","ND II","HND I","HND II","Other"]};
+$("fields").innerHTML=F.map(([k,l,t])=>{let c=(t==="textarea"||k==="address")?' class="full"':"";
+ let i=t==="select"?`<select id="f_${k}"><option value="">Select</option>${OPT[k].map(o=>`<option>${o}</option>`).join("")}</select>`:t==="textarea"?`<textarea id="f_${k}"></textarea>`:`<input id="f_${k}" type="${t}">`;
+ return`<div${c}><label>${l}</label>${i}</div>`}).join("");
+const ROLES={superadmin:"Super Admin",admin:"Admin",unithead:"Unit Head",staff:"Staff"};
+const isAdm=()=>role==="admin"||role==="superadmin";
+const allowed=()=>role==="superadmin"?["staff","unithead","admin","superadmin"]:["staff","unithead"];
+const fillRoles=()=>{$("u_role").innerHTML=allowed().map(x=>`<option value="${x}">${ROLES[x]}</option>`).join("");$("u_unit").innerHTML=U.map(x=>`<option>${esc(x)}</option>`).join("")};
+const togUnit=()=>$("u_unit_w").classList.toggle("hide",$("u_role").value!=="unithead");
+function uclear(){uedit=null;$("usf").reset();$("u_email").readOnly=false;$("u_pw").disabled=false;$("ut").textContent="Add User";$("usv").textContent="Add User";togUnit()}
+function renderUsers(){const me=auth.currentUser.uid;$("utb").innerHTML=users.map(x=>{const ok=x._id!==me&&(role==="superadmin"||["staff","unithead"].includes(x.role)),off=x.active===false;
+ return`<tr><td>${esc(x.email)}</td><td>${esc(x.name)}</td><td>${esc(ROLES[x.role]||x.role)}${x.role==="unithead"?" - "+esc(x.unit||"?"):""}</td><td>${off?"Inactive":"Active"}</td><td>${ok?`<button class="btn s" data-ue="${x._id}">Edit</button> <button class="btn s" data-ur="${x._id}">Reset Password</button> <button class="btn ${off?"":"d"}" data-ud="${x._id}">${off?"Reactivate":"Deactivate"}</button>`:""}</td></tr>`}).join("")}
+function renderSubs(){$("pn").textContent=subs.length;$("ptb").innerHTML=subs.length?subs.map(x=>`<tr><td>${esc(x.admissionNo)}</td><td>${esc([x.lastName,x.firstName,x.middleName].filter(Boolean).join(" "))}</td><td>${esc(x.skillUnit)}</td><td>${esc(x.phone)}</td><td><button class="btn s" data-dv="${esc(x._id)}">Docs</button> <button class="btn" data-pa="${esc(x._id)}">Approve</button> <button class="btn d" data-pr="${esc(x._id)}">Reject</button></td></tr>`).join(""):'<tr><td colspan="5" style="text-align:center;color:#64748b">No pending submissions</td></tr>'}
+const key=a=>String(a||"").trim().toUpperCase().replace(/[\/\s]+/g,"-");
+let psub=null,subs=[],usub=null,users=[],uedit=null,unit="",students=[],role=null,editing=null,unsub=null;
+const show=(el,t,c)=>{el.className="msg "+c;el.textContent=t};
+const today=()=>new Date().toISOString().slice(0,10);
+
+onAuthStateChanged(auth,async u=>{
+ if(unsub){unsub();unsub=null}if(usub){usub();usub=null}if(psub){psub();psub=null}if(ssub){ssub();ssub=null}
+ if(!u){$("app").classList.add("hide");$("login").classList.remove("hide");return}
+ try{const r=doc(db,"users",u.uid);let s=await getDoc(r);
+  if(!s.exists()){alert("No role has been assigned to this account. Ask the administrator to add you under Users.");await signOut(auth);return}
+  if(s.data().active===false){alert("Your account has been deactivated. Contact the administrator.");await signOut(auth);return}role=s.data().role;unit=s.data().unit||"";if(role==="student"){alert("Students must sign in at the student portal: /register.html");await signOut(auth);return}}catch(e){alert("Could not load your account: "+e.message);await signOut(auth);return}
+ $("who").textContent=u.email;$("role").textContent=role==="unithead"?"Unit Head: "+unit:(ROLES[role]||role);$("uf").classList.toggle("hide",role==="unithead");clearForm();$("impcard").classList.toggle("hide",!isAdm());$("unav").classList.toggle("hide",!isAdm());$("snav").classList.toggle("hide",!(isAdm()||role==="unithead"));go("rec");if(isAdm()||role==="unithead")ssub=onSnapshot(role==="unithead"?query(collection(db,"scores"),where("skillUnit","==",unit)):collection(db,"scores"),sn=>{scores={};sn.docs.forEach(d=>scores[d.id]=d.data());renderScores()},()=>{});$("plink").value=location.origin+"/register.html";psub=onSnapshot(role==="unithead"?query(collection(db,"submissions"),where("skillUnit","==",unit)):collection(db,"submissions"),sn=>{subs=sn.docs.map(d=>({_id:d.id,...d.data()}));renderSubs()},()=>{});if(isAdm()){fillRoles();uclear();usub=onSnapshot(collection(db,"users"),sn=>{users=sn.docs.map(d=>({_id:d.id,...d.data()}));renderUsers()})};
+ $("login").classList.add("hide");$("app").classList.remove("hide");
+ unsub=onSnapshot(role==="unithead"?query(collection(db,"students"),where("skillUnit","==",unit)):collection(db,"students"),sn=>{students=sn.docs.map(d=>({_id:d.id,...d.data()}));
+  students.sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""));$("conn").className="msg";render();renderScores()},
+  e=>show($("conn"),"Connection problem: "+e.message,"er"))});
+
+$("lf").onsubmit=async e=>{e.preventDefault();try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value)}catch(x){show($("lm"),"Sign-in failed. Check your email and password.","er")}};
+$("out").onclick=()=>signOut(auth);
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>go(b.dataset.v));
+function go(v){["rec","reg","tools","users","pend","scores"].forEach(s=>$(s).classList.toggle("hide",s!==v));document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v))}
+
+function render(){const q=$("q").value.toLowerCase().trim();
+ $("n1").textContent=students.length;$("n2").textContent=students.filter(s=>s.gender==="Male").length;$("n3").textContent=students.filter(s=>s.gender==="Female").length;
+ const uf=$("uf").value;$("uc").innerHTML=(role==="unithead"?[unit]:U).map(x=>`<tr><td>${esc(x)}</td><td><b>${students.filter(s=>s.skillUnit===x).length}</b></td></tr>`).join("")+(role==="unithead"?"":`<tr><td><i>Not yet assigned</i></td><td><b>${students.filter(s=>!U.includes(s.skillUnit)).length}</b></td></tr>`);
+ const L=students.filter(s=>(!uf||s.skillUnit===uf)&&(!q||[s.admissionNo,s.firstName,s.middleName,s.lastName,s.phone,s.level,s.session].join(" ").toLowerCase().includes(q)));
+ $("tb").innerHTML=L.length?L.map(s=>`<tr><td>${esc(s.admissionNo)}</td><td>${esc([s.lastName,s.firstName,s.middleName].filter(Boolean).join(" "))}</td><td>${esc(s.gender)}</td><td>${esc(s.skillUnit)}</td><td>${esc(s.level)}</td><td>${esc(s.session)}</td><td><button class="btn s" data-e="${esc(s._id)}">Edit</button> <button class="btn s" data-dv="${esc(s._id)}">Docs</button> ${isAdm()?`<button class="btn d" data-d="${esc(s._id)}">Delete</button>`:""}</td></tr>`).join(""):'<tr><td colspan="7" style="text-align:center;color:#64748b">No records found</td></tr>'}
+$("q").oninput=render;$("uf").innerHTML='<option value="">All skill units</option>'+U.map(x=>`<option>${esc(x)}</option>`).join("");$("uf").onchange=render;
+$("tb").onclick=async e=>{const t=e.target;
+ if(t.dataset.e){const s=students.find(x=>x._id===t.dataset.e);if(s)startEdit(s)}
+ if(t.dataset.d){const s=students.find(x=>x._id===t.dataset.d);if(s&&confirm("Delete "+s.firstName+" "+s.lastName+" ("+s.admissionNo+") permanently?"))try{await deleteDoc(doc(db,"students",s._id))}catch(x){alert(x.message)}}};
+
+function clearForm(){editing=null;$("sf").reset();$("f_admissionNo").readOnly=false;if(role==="unithead"){$("f_skillUnit").value=unit;$("f_skillUnit").disabled=true}else $("f_skillUnit").disabled=false;$("f_registrationDate").value=today();$("ft").textContent="Register New Student";$("fm").className="msg"}
+$("clr").onclick=clearForm;clearForm();
+function startEdit(s){clearForm();editing={id:s._id,rev:s.rev||1};F.forEach(([k])=>$("f_"+k).value=s[k]||"");$("f_admissionNo").readOnly=true;$("ft").textContent="Edit Student ("+s.admissionNo+")";go("reg")}
+const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+const dupOf=(r,skip)=>students.find(s=>s._id!==skip&&norm(s.firstName)===norm(r.firstName)&&norm(s.lastName)===norm(r.lastName)&&(r.dob?s.dob===r.dob:true));
+
+$("sf").onsubmit=async e=>{e.preventDefault();const r={};F.forEach(([k])=>r[k]=$("f_"+k).value.trim());
+ for(const [k,l,,req] of F)if(req&&!r[k])return show($("fm"),"Please fill in: "+l.replace(" *",""),"er");
+ const id=editing?editing.id:key(r.admissionNo);$("sv").disabled=true;
+ try{
+  if(!editing){const d=dupOf(r);if(d&&!confirm("A student named "+d.firstName+" "+d.lastName+" already exists (Admission No. "+d.admissionNo+"). Register another record anyway?"))throw new Error("Cancelled. No record was created.")}
+  else{const d=dupOf(r,id);if(d&&!confirm("Another student has the same name"+(r.dob?" and date of birth":"")+" ("+d.admissionNo+"). Save anyway?"))throw new Error("Cancelled.")}
+  const ref=doc(db,"students",id);
+  await runTransaction(db,async tx=>{const s=await tx.get(ref);
+   if(!editing){if(s.exists())throw new Error("Admission number "+r.admissionNo+" is already registered to "+s.data().firstName+" "+s.data().lastName+".");
+    tx.set(ref,{...r,rev:1,createdBy:auth.currentUser.email,createdAt:serverTimestamp(),updatedAt:serverTimestamp()})}
+   else{if(!s.exists())throw new Error("This record was deleted by someone else.");
+    if((s.data().rev||1)!==editing.rev)throw new Error("Someone else changed this record while you were editing. Close this form, reopen the record and re-apply your changes. Nothing was overwritten.");
+    tx.update(ref,{...r,admissionNo:s.data().admissionNo,rev:editing.rev+1,updatedBy:auth.currentUser.email,updatedAt:serverTimestamp()})}});
+  show($("fm"),editing?"Record updated.":"Student registered.","ok");if(!editing)setTimeout(clearForm,1200)
+ }catch(x){show($("fm"),x.message,"er")}$("sv").disabled=false};
+
+const dl=(c,n,t)=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click()};
+$("ecsv").onclick=()=>{if(!students.length)return alert("No records to export.");const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+ dl(F.map(f=>q(f[1].replace(" *",""))).join(",")+"\n"+students.map(s=>F.map(([k])=>q(s[k])).join(",")).join("\n"),"ENT312Reg_"+today()+".csv","text/csv")};
+$("ejson").onclick=()=>dl(JSON.stringify({app:"ENT312Reg Online",version:2,exportedAt:new Date().toISOString(),students:students.map(({_id,...s})=>s)},null,2),"ENT312Reg_Backup_"+today()+".json","application/json");
+
+$("imp").onchange=async e=>{if(!isAdm())return;const files=[...e.target.files];if(!files.length)return;
+ let add=0,skip=0,bad=0,rev=[];const seen=new Set(students.map(s=>s._id));const pool=[...students];let batch=writeBatch(db),n=0;
+ try{for(const f of files){let j;try{j=JSON.parse(await f.text())}catch{rev.push(f.name+": not a valid JSON file");continue}
+  if(!j||!Array.isArray(j.students)){rev.push(f.name+": no students found");continue}
+  for(const s of j.students){if(!s||!s.admissionNo||!s.firstName||!s.lastName){bad++;continue}
+   const id=key(s.admissionNo);if(seen.has(id)){skip++;continue}
+   const d=dupOf(s,id)||pool.find(p=>norm(p.firstName)===norm(s.firstName)&&norm(p.lastName)===norm(s.lastName)&&s.dob&&p.dob===s.dob);
+   if(d)rev.push("Possible duplicate: "+s.firstName+" "+s.lastName+" ("+s.admissionNo+") resembles "+d.admissionNo+" - imported anyway, please check.");
+   const rec={rev:1,importedFrom:f.name,createdBy:auth.currentUser.email,createdAt:serverTimestamp(),updatedAt:serverTimestamp()};
+   F.forEach(([k])=>rec[k]=String(s[k]??"").trim());batch.set(doc(db,"students",id),rec);seen.add(id);pool.push(rec);add++;n++;
+   if(n>=400){await batch.commit();batch=writeBatch(db);n=0}}}
+  if(n)await batch.commit();
+  show($("im"),"Imported "+add+" new student(s). Skipped "+skip+" already existing admission number(s). Invalid records: "+bad+".","ok");
+  $("ir").textContent=rev.join("\n")}catch(x){show($("im"),"Import stopped: "+x.message,"er")}e.target.value=""};
+$("u_role").onchange=togUnit;$("uclr").onclick=uclear;
+$("utb").onclick=async e=>{const t=e.target,id=t.dataset.ue||t.dataset.ur||t.dataset.ud;if(!id)return;const x=users.find(v=>v._id===id);if(!x)return;
+ try{if(t.dataset.ue){uclear();uedit=id;$("u_name").value=x.name||"";$("u_email").value=x.email||"";$("u_email").readOnly=true;$("u_pw").disabled=true;$("u_role").value=x.role;$("u_unit").value=x.unit||U[0];togUnit();$("ut").textContent="Edit User";$("usv").textContent="Save Changes";scrollTo(0,0)}
+ else if(t.dataset.ur){if(confirm("Send a password reset email to "+x.email+"?")){await sendPasswordResetEmail(auth,x.email);show($("um"),"Password reset email sent to "+x.email+".","ok")}}
+ else{const off=x.active!==false;if(confirm((off?"Deactivate ":"Reactivate ")+x.email+"?")){await updateDoc(doc(db,"users",id),{active:!off});show($("um"),x.email+(off?" deactivated.":" reactivated."),"ok")}}}catch(z){show($("um"),z.message,"er")}};
+$("usf").onsubmit=async e=>{e.preventDefault();const name=$("u_name").value.trim(),email=$("u_email").value.trim(),rl=$("u_role").value,un=rl==="unithead"?$("u_unit").value:"",pw=$("u_pw").value;
+ if(!name||!email)return show($("um"),"Enter the full name and email.","er");if(!uedit&&pw.length<8)return show($("um"),"Password must be at least 8 characters.","er");
+ $("usv").disabled=true;try{
+  if(uedit){await updateDoc(doc(db,"users",uedit),{name,role:rl,unit:un});show($("um"),"User updated.","ok");uclear()}
+  else{let c;try{c=await createUserWithEmailAndPassword(auth2,email,pw)}catch(z){throw new Error(z.code==="auth/email-already-in-use"?"That email already has a login. Ask the person to sign in once, then use Edit to set their role.":z.code==="auth/weak-password"?"Password is too weak.":z.message)}
+   await signOut(auth2);await setDoc(doc(db,"users",c.user.uid),{email,name,role:rl,unit:un,active:true,createdBy:auth.currentUser.email,createdAt:serverTimestamp()});
+   show($("um"),"User created. Give them the website address, their email and the temporary password.","ok");uclear()}
+ }catch(z){show($("um"),z.message,"er")}$("usv").disabled=false};
+$("pcopy").onclick=async()=>{try{await navigator.clipboard.writeText($("plink").value);show($("pm"),"Link copied.","ok")}catch{$("plink").select()}};
+$("ptb").onclick=async e=>{const t=e.target,id=t.dataset.pa||t.dataset.pr;if(!id)return;const x=subs.find(v=>v._id===id);if(!x)return;
+ try{if(t.dataset.pr){if(confirm("Reject and delete the submission from "+x.firstName+" "+x.lastName+"?")){await deleteDoc(doc(db,"submissions",id));show($("pm"),"Submission rejected.","ok")}return}
+  const d=dupOf(x,id);if(d&&!confirm("A student with the same name already exists ("+d.admissionNo+"). Approve anyway?"))return;
+  await runTransaction(db,async tx=>{const ref=doc(db,"students",id);if((await tx.get(ref)).exists())throw new Error("Admission number "+x.admissionNo+" is already registered.");
+   const rec={};F.forEach(([k])=>rec[k]=String(x[k]??"").trim());tx.set(ref,{...rec,uid:x.uid||"",rev:1,source:"self-registration",approvedBy:auth.currentUser.email,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});tx.delete(doc(db,"submissions",id))});
+  show($("pm"),"Approved and added to Student Records.","ok")}catch(z){show($("pm"),z.message,"er")}};
+let scores={},ssub=null;
+function renderScores(){const q=($("sq").value||"").toLowerCase();const L=students.filter(x=>!q||[x.admissionNo,x.firstName,x.lastName,x.skillUnit].join(" ").toLowerCase().includes(q));
+ $("sctb").innerHTML=L.map(x=>{const c=scores[x._id]||{},i=esc(x._id);return`<tr><td>${esc(x.admissionNo)}</td><td>${esc([x.lastName,x.firstName].filter(Boolean).join(" "))}</td><td>${esc(x.skillUnit)}</td><td><input type="number" min="0" max="999" data-a="${i}" value="${esc(c.attendance??"")}"></td><td><input type="number" min="0" max="100" step="0.5" data-s="${i}" value="${esc(c.assignment??"")}"></td><td><input type="number" min="0" max="100" step="0.5" data-c="${i}" value="${esc(c.ca??"")}"></td><td><button class="btn" data-sv="${i}">Save</button></td></tr>`}).join("")||'<tr><td colspan="7" style="text-align:center;color:#64748b">No students</td></tr>'}
+$("sq").oninput=renderScores;
+$("sctb").onclick=async e=>{const id=e.target.dataset.sv;if(!id)return;const x=students.find(v=>v._id===id);if(!x)return;
+ const g=k=>document.querySelector(`[data-${k}="${id}"]`).value,n=v=>v===""?null:Number(v),A=n(g("a")),S=n(g("s")),C=n(g("c"));
+ if([A,S,C].some(v=>v!==null&&(isNaN(v)||v<0))||[S,C].some(v=>v!==null&&v>100))return show($("sm"),"Attendance must be 0 or more. Assignment and CA must be between 0 and 100.","er");
+ try{await setDoc(doc(db,"scores",id),{attendance:A,assignment:S,ca:C,uid:x.uid||"",skillUnit:x.skillUnit,admissionNo:x.admissionNo,updatedBy:auth.currentUser.email,updatedAt:serverTimestamp()});show($("sm"),"Saved scores for "+x.admissionNo+".","ok")}catch(z){show($("sm"),"Not saved: "+z.message,"er")}};
+const okImg=v=>typeof v==="string"&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(v);
+document.addEventListener("click",async e=>{const id=e.target.dataset&&e.target.dataset.dv;if(!id)return;
+ try{const sn=await getDoc(doc(db,"files",id));if(!sn.exists())return alert("No documents uploaded for this student.");const d=sn.data(),o=document.createElement("div");
+  o.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9;overflow:auto;padding:16px";
+  o.innerHTML='<div style="background:#fff;max-width:900px;margin:auto;padding:16px;border-radius:10px"><button class="btn d" id="xcl">Close</button>'+[["idCard","ID Card"],["photo","Passport Photograph"],["logbook","Logbook Front Page"]].map(([k,l])=>`<h3>${l}</h3>${okImg(d[k])?`<img src="${d[k]}" style="max-width:100%">`:"<p>Not uploaded</p>"}`).join("")+"</div>";
+  document.body.appendChild(o);o.querySelector("#xcl").onclick=()=>o.remove()}catch(x){alert("Cannot open documents: "+x.message)}});
+</script></body></html>

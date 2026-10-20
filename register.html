@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ENT312 Student Portal</title>
+<style>
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f7fb;color:#1f2937}header{background:#174ea6;color:#fff;padding:16px;text-align:center}header h1{margin:0;font-size:22px}
+.c{max-width:760px;margin:16px auto;background:#fff;border:1px solid #dbe3ef;border-radius:10px;padding:18px}.g{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.f{grid-column:1/-1}
+label{font-size:13px;font-weight:bold;display:block;margin-bottom:4px}input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;font:inherit;box-sizing:border-box}
+button{width:100%;border:0;border-radius:6px;padding:12px;background:#174ea6;color:#fff;font-weight:bold;font-size:15px;cursor:pointer;margin-top:14px}button:disabled{opacity:.6}
+.m{padding:10px;border-radius:6px;margin:10px 0;font-size:14px;display:none}.ok{display:block;background:#dcfce7;color:#166534}.er{display:block;background:#fee2e2;color:#991b1b}small{color:#64748b}
+@media(max-width:600px){.g{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>ENT312 Student Portal</h1><small style="color:#dbeafe">Sign up, register, and view your scores</small></header>
+<div class="c"><div id="msg" class="m"></div>
+<div id="auth"><div style="display:flex;gap:8px;margin-bottom:10px"><button id="t1" type="button" style="margin:0">Sign Up</button><button id="t2" type="button" style="margin:0;background:#64748b">Sign In</button></div>
+<form id="su"><div class="g"><div><label>Full Name *</label><input id="s_n" maxlength="100"></div><div><label>ID Number * (12/34/56/7890 or KIU/12/34/56/7890)</label><input id="s_i" maxlength="30"></div>
+<div><label>Email *</label><input id="s_e" type="email"></div><div><label>Password * (at least 8 characters)</label><input id="s_p" type="password"></div></div><button id="s_b">Create Account</button></form>
+<form id="si" style="display:none"><div class="g"><div><label>Email</label><input id="l_e" type="email"></div><div><label>Password</label><input id="l_p" type="password"></div></div><button>Sign In</button></form></div>
+<div id="main" style="display:none"><div style="text-align:right"><button id="out" style="width:auto;padding:8px 14px;margin:0;background:#64748b">Sign Out</button></div><div id="view"></div></div></div>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import{getFirestore,doc,getDoc,setDoc,getDocs,query,where,collection,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const app=initializeApp({apiKey:"AIzaSyDnoGs4QS580kWJob9KTF0mOZFJFza3ofg",authDomain:"ent312-db722.firebaseapp.com",projectId:"ent312-db722",storageBucket:"ent312-db722.firebasestorage.app",messagingSenderId:"64579185987",appId:"1:64579185987:web:66a81872ee08e8e92ad3f6"});
+const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const U=["Tailoring and Fashion Design","Soap and Detergent Production","Leatherwork","Woodwork and Carpentry","Tie-Dye and Textile Design","Welding and Fabrication","Solar and Electrical Installation","Computer Networking and Maintenance","Computer Applications and Artificial Intelligence (AI)","Web Design","Building and Construction"];
+const O={gender:["Male","Female","Other"],level:["100 Level","200 Level","300 Level","400 Level","500 Level","600 Level","ND I","ND II","HND I","HND II","Other"],skillUnit:U};
+const F=[["firstName","First Name *","text",1],["middleName","Middle Name","text"],["lastName","Last Name *","text",1],["gender","Gender *","select",1],["dob","Date of Birth","date"],["phone","Phone Number","text"],["email","Email Address","email"],["session","Academic Session * (e.g. 2025/2026)","text",1],["level","Academic Level *","select",1],["skillUnit","Skill Unit *","select",1],["programme","Programme / Course","text"],["department","Department","text"],["guardian","Parent / Guardian Name","text"],["guardianPhone","Guardian Phone","text"],["address","Residential Address","textarea"]];
+const RX=/^(KIU\/)?[0-9]{2}\/[0-9]{2}\/[0-9]{2}\/[0-9]{4}$/,key=a=>a.toUpperCase().replace(/[\/\s]+/g,"-");
+const show=(t,c)=>{$("msg").className="m "+(c||"");$("msg").textContent=t||"";if(t)scrollTo(0,0)};
+$("t1").onclick=()=>{$("su").style.display="";$("si").style.display="none"};$("t2").onclick=()=>{$("si").style.display="";$("su").style.display="none"};
+$("su").onsubmit=async e=>{e.preventDefault();show("");const n=$("s_n").value.trim(),id=$("s_i").value.trim().toUpperCase(),em=$("s_e").value.trim(),pw=$("s_p").value;
+ if(!n||!em)return show("Fill in all the fields.","er");if(!RX.test(id))return show("Invalid ID number. Use 00/00/00/0000 or KIU/00/00/00/0000.","er");if(pw.length<8)return show("Password must be at least 8 characters.","er");
+ $("s_b").disabled=true;let c;
+ try{c=await createUserWithEmailAndPassword(auth,em,pw)}catch(x){$("s_b").disabled=false;return show(x.code==="auth/email-already-in-use"?"That email already has an account. Use Sign In.":x.code==="auth/weak-password"?"Choose a stronger password.":"Could not create the account: "+x.message,"er")}
+ try{await setDoc(doc(db,"users",c.user.uid),{role:"student",sid:key(id),name:n,email:em,active:true,createdAt:serverTimestamp()})}
+ catch(x){try{await c.user.delete()}catch{}await signOut(auth);show("Could not finish sign up. Please try again.","er")}$("s_b").disabled=false};
+$("si").onsubmit=async e=>{e.preventDefault();show("");try{await signInWithEmailAndPassword(auth,$("l_e").value.trim(),$("l_p").value)}catch{show("Sign-in failed. Check your email and password.","er")}};
+$("out").onclick=()=>signOut(auth);
+let me=null,booting=false;
+onAuthStateChanged(auth,async u=>{if(!u){me=null;$("main").style.display="none";$("auth").style.display="";return}
+ let ud;for(let i=0;i<8;i++){try{const s=await getDoc(doc(db,"users",u.uid));if(s.exists()){ud=s.data();break}}catch{}await new Promise(r=>setTimeout(r,500))}
+ if(!ud){return}
+ if(ud.role!=="student"){await signOut(auth);return show("This is the student portal. Staff should sign in at the main ENT312Reg page.","er")}
+ if(ud.active===false){await signOut(auth);return show("Your account is deactivated. Contact your unit head.","er")}
+ me={uid:u.uid,...ud};$("auth").style.display="none";$("main").style.display="";load()});
+async function mine(c){const q=await getDocs(query(collection(db,c),where("uid","==",me.uid)));return q.docs.map(d=>({_id:d.id,...d.data()}))}
+async function load(){const v=$("view");v.innerHTML="<p>Loading...</p>";
+ try{const[st,sb,sc]=await Promise.all([mine("students"),mine("submissions"),mine("scores")]);
+  if(st.length)return portal(st[0],sc[0]);
+  if(sb.length)return v.innerHTML=`<h2 style="color:#174ea6">Welcome, ${esc(me.name)}</h2><div class="m ok">Your registration has been submitted and is waiting for your unit head to approve it. Come back later to see your scores.</div>`;
+  form()}catch(x){v.innerHTML='<div class="m er">Could not load your information: '+esc(x.message)+"</div>"}}
+function portal(s,c){const n=v=>v===null||v===undefined?"Not yet entered":esc(v);
+ $("view").innerHTML=`<h2 style="color:#174ea6">${esc([s.lastName,s.firstName,s.middleName].filter(Boolean).join(" "))}</h2><p><b>ID Number:</b> ${esc(s.admissionNo)}<br><b>Skill Unit:</b> ${esc(s.skillUnit)}<br><b>Level:</b> ${esc(s.level)} &middot; <b>Session:</b> ${esc(s.session)}</p>
+ <table style="width:100%;border-collapse:collapse"><tr style="background:#f1f5f9"><th style="padding:10px;text-align:left">Attendance (days)</th><th style="padding:10px;text-align:left">Assignment score</th><th style="padding:10px;text-align:left">CA score</th></tr><tr><td style="padding:10px">${n(c&&c.attendance)}</td><td style="padding:10px">${n(c&&c.assignment)}</td><td style="padding:10px">${n(c&&c.ca)}</td></tr></table>
+ <p><small>Scores are entered by your unit head.</small></p>`}
+function form(){$("view").innerHTML=`<h2 style="color:#174ea6">Complete your registration</h2><p><b>ID Number:</b> ${esc(me.sid.replace(/-/g,"/"))}</p><form id="rf"><div class="g">`+F.map(([k,l,t])=>`<div${k==="address"?' class="f"':""}><label>${l}</label>${t==="select"?`<select id="f_${k}"><option value="">Select</option>${O[k].map(o=>`<option>${o}</option>`).join("")}</select>`:t==="textarea"?`<textarea id="f_${k}" maxlength="300"></textarea>`:`<input id="f_${k}" type="${t}" maxlength="100">`}</div>`).join("")+`
+ <div class="f"><label>ID Card photo *</label><input type="file" id="p_idCard" accept="image/*"></div><div class="f"><label>Passport photograph *</label><input type="file" id="p_photo" accept="image/*"></div><div class="f"><label>Logbook front page photo *</label><input type="file" id="p_logbook" accept="image/*"></div></div><button id="rb">Submit Registration</button></form>`;
+ $("f_firstName").value=me.name.split(" ")[0]||"";$("f_email").value=me.email;$("rf").onsubmit=submit}
+function comp(file){return new Promise((res,rej)=>{if(!file||!file.type.startsWith("image/"))return rej(new Error("Choose an image file for every photo."));const im=new Image(),u=URL.createObjectURL(file);
+ im.onload=()=>{URL.revokeObjectURL(u);for(const[m,q]of[[1000,.6],[800,.5],[600,.45]]){const r=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext("2d").drawImage(im,0,0,c.width,c.height);const d=c.toDataURL("image/jpeg",q);if(d.length<300000)return res(d)}rej(new Error("A photo is too large. Take a smaller photo."))};
+ im.onerror=()=>rej(new Error("Could not read one of the photos."));im.src=u})}
+async function submit(e){e.preventDefault();show("");const r={};F.forEach(([k])=>r[k]=$("f_"+k).value.trim());
+ for(const[k,l,,q]of F)if(q&&!r[k])return show("Please fill in: "+l.split(" *")[0],"er");
+ for(const k of["idCard","photo","logbook"])if(!$("p_"+k).files[0])return show("Please upload all three photos.","er");
+ $("rb").disabled=true;
+ try{const im={};for(const k of["idCard","photo","logbook"])im[k]=await comp($("p_"+k).files[0]);
+  await setDoc(doc(db,"files",me.sid),{uid:me.uid,skillUnit:r.skillUnit,...im,updatedAt:serverTimestamp()});
+  r.admissionNo=me.sid.replace(/-/g,"/");r.registrationDate=new Date().toISOString().slice(0,10);r.notes="";r.uid=me.uid;r.submittedAt=serverTimestamp();
+  await setDoc(doc(db,"submissions",me.sid),r);load()}
+ catch(x){show("Could not submit: "+(x.code==="permission-denied"?"this ID number may already be registered or submitted. Check with your unit head.":x.message),"er");$("rb").disabled=false}}
+</script></body></html>
